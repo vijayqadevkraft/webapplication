@@ -48,6 +48,7 @@ pipeline {
         stage('Reload Nginx') {
             steps {
                 sh '''
+                sudo systemctl daemon-reload
                 sudo systemctl reload nginx
                 '''
             }
@@ -57,7 +58,14 @@ pipeline {
             steps {
                 sh '''
                 sleep 2
-                curl -I http://localhost | grep "200 OK"
+                STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost)
+
+                if [ "$STATUS" -eq 200 ]; then
+                    echo "✅ Application is UP"
+                else
+                    echo "❌ Application is DOWN"
+                    exit 1
+                fi
                 '''
             }
         }
