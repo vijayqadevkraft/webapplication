@@ -1,39 +1,65 @@
-name: Deploy to EC2
+name: Full Auto Deploy
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Deploy to EC2 (Full Automation)
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
 
-    - name: Checkout Code
-      uses: actions/checkout@v4
+            echo "🚀 Starting Full Automation..."
 
-    - name: Deploy to EC2
-      uses: appleboy/ssh-action@v0.1.10
-      with:
-        host: ${{ secrets.SERVER_IP }}
-        username: ${{ secrets.SSH_USER }}
-        key: ${{ secrets.SSH_KEY }}
-        script: |
+            # ========================
+            # SYSTEM SETUP (safe)
+            # ========================
+            if ! command -v node >/dev/null 2>&1; then
+              echo "Installing Node.js..."
+              sudo apt update
+              sudo apt install -y curl git
+              curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+              sudo apt install -y nodejs
+            fi
 
-          echo "🚀 Deployment started"
+            if ! command -v pm2 >/dev/null 2>&1; then
+              echo "Installing PM2..."
+              sudo npm install -g pm2
+            fi
 
-          cd /opt/projects/webapp || exit
+            # ========================
+            # APP SETUP
+            # ========================
+            mkdir -p /var/www/app
+            cd /var/www/app
 
-          git pull origin main
+            if [ ! -d ".git" ]; then
+              echo "Cloning repo..."
+              git clone https://github.com/vijayqadevkraft/webapplication.git .
+            else
+              echo "Pulling latest code..."
+              git pull origin main
+            fi
 
-          cd app/backend
-          npm install
+            # ========================
+            # INSTALL DEPENDENCIES
+            # ========================
+            npm install
 
-          pm2 restart server || pm2 start server.js
+            # ========================
+            # RUN APPLICATION
+            # ========================
+            pm2 restart webapp || pm2 start index.js --name webapp
 
-          sudo cp -r /opt/projects/webapp/app/frontend/* /var/www/html/
+            pm2 save
 
-          sudo systemctl restart nginx
-
-          echo "✅ Deployment done"
+            echo "✅ Deployment Completed"
