@@ -1,21 +1,26 @@
 name: Server Setup
 
 on:
-  workflow_dispatch   # run manually
+  workflow_dispatch
 
 jobs:
   setup:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install Software on Server
+      - name: Connect to EC2 and Install Software
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
           script: |
-            echo "Updating server..."
+            echo "Connected to server ✅"
+            whoami
+            hostname
+
+            echo "Updating system..."
             sudo apt update -y
 
             echo "Installing Nginx..."
@@ -30,8 +35,11 @@ jobs:
             echo "Installing PM2..."
             sudo npm install -g pm2
 
-            echo "Starting services..."
+            echo "Starting Nginx..."
             sudo systemctl start nginx
             sudo systemctl enable nginx
 
-            echo "All software installed successfully ✅"
+            echo "Checking Nginx status..."
+            sudo systemctl status nginx
+
+            echo "Server setup completed successfully 🎉"
