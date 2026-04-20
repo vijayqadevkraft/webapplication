@@ -36,13 +36,13 @@ jobs:
 
             npm install
 
-            pm2 delete backend-dev || true
-            pm2 start server.js --name backend-dev
+            pm2 delete backend || true
+            pm2 start server.js --name backend
 
             cd ../frontend
 
-            sudo rm -rf /var/www/html/*
-            sudo cp -r * /var/www/html/
+            sudo rm -rf /var/www/dev/*
+            sudo cp -r * /var/www/dev/
 
             sudo systemctl restart nginx
 
