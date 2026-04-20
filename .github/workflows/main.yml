@@ -1,4 +1,4 @@
-name: Deploy Application
+name: Deploy Production
 
 on:
   push:
@@ -10,61 +10,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to EC2 Server
+      - name: Deploy to EC2 Production Server
         uses: appleboy/ssh-action@v1.0.3
+
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
+
           script: |
-            echo "🚀 Starting deployment..."
+            echo "🚀 Starting PRODUCTION deployment..."
 
             cd /home/ubuntu
 
-            # Clone repo if not exists
             if [ ! -d "webapplication" ]; then
-              echo "📦 Cloning repository..."
               git clone https://github.com/vijayqadevkraft/webapplication.git
             fi
 
             cd webapplication
 
-            echo "🔄 Pulling latest code..."
             git pull origin main
 
-            # Go inside app folder
-            cd app
-
-            # =========================
-            # BACKEND (Node.js)
-            # =========================
-            echo "⚙️ Setting up backend..."
-            cd backend
+            cd app/backend
 
             npm install
 
-            echo "♻️ Restarting backend..."
-            pm2 delete backend || true
-            pm2 start server.js --name backend
+            pm2 delete backend-prod || true
+            pm2 start server.js --name backend-prod
 
-            cd ..
+            cd ../frontend
 
-            # =========================
-            # FRONTEND (STATIC)
-            # =========================
-            echo "🎨 Deploying static frontend..."
-            cd frontend
-
-            # Remove old files
             sudo rm -rf /var/www/html/*
-
-            # Copy new files
             sudo cp -r * /var/www/html/
 
-            cd ..
-
-            echo "🌐 Restarting Nginx..."
             sudo systemctl restart nginx
 
-            echo "✅ Deployment completed successfully 🎉"
+            echo "✅ PRODUCTION deployment completed"
